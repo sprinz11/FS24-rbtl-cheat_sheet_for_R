@@ -14,7 +14,7 @@ abstract:
 license: "CC BY"
 citation: 
   container-title: Research Beyond the Lab
-  url: https://www.example.com # insert website link here
+  url: https://sprinz11.github.io/FS24-rbtl-cheat_sheet_for_R/
 bibliography: references.bib
 csl: apa.csl  # other csls https://github.com/citation-style-language/styles
 format:

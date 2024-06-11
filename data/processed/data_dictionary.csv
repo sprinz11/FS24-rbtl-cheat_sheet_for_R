@@ -1,0 +1,6 @@
+name,description
+bin_id,unique identifier of waste bin
+collection_date,calendar date of waste collection
+weekday,corresponding weekday of collection
+location,location of waste bin in Zurich
+mass_VAR_kg,"measured mass of waste of type VAR in kg (types: paper, plastic, glass, metal, organic,other)"

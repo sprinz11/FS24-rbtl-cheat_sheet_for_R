@@ -1,0 +1,1280 @@
+---
+title: "Cheatsheet for R"
+subtitle: "FS24 - Research Beyond the Lab"
+date: today
+author:
+  - name: "Sven Prinz"
+    orcid: 0009-0000-4485-1235
+    email: sprinz@ethz.ch
+    affiliation: 
+      - name: ETH Zurich
+        url: https://ethz.ch/de.html
+abstract: 
+  "This document includes a bunch of functions that were used during the lecture 'Research Beyond the Lab - Open Science and Research Methods for a Global Engineer' in the Spring semester 2024 (https://rbtl-fs24.github.io/website/). Feel free to use it for the exam. No guarantee is given for completeness or correctness."
+license: "CC BY"
+citation: 
+  container-title: Research Beyond the Lab
+  url: https://www.example.com # insert website link here
+bibliography: references.bib
+csl: apa.csl  # other csls https://github.com/citation-style-language/styles
+format:
+#  docx: default
+  html:
+    toc: true
+    toc-depth: 4
+    toc-expand: true
+    embed-resources: true
+#    fig-width: 6  
+#    fig-asp: 0.618    # the golden ratio, only adjust fig-asp in chunks where needed
+#    fig-align: center
+#    out-width: "70%"
+
+# global code chunk options are defined:
+execute:
+  warning: true
+  cache: false   # regularily clear out by knitr::clean_cache()
+
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Useful stuff
+
+**HELP:** `?<func_name>`
+
+**Generic YAML header:**
+
+``` r
+---
+title: "Title"
+subtitle: "Subtitle"
+date: today
+author:
+  - name: "Sven Prinz"
+    orcid: 0009-0000-4485-1235
+    email: sprinz@ethz.ch
+    affiliation: 
+      - name: ETH Zurich
+        url: https://ethz.ch/de.html
+abstract: 
+  "Abstract."
+license: "CC BY"
+citation: 
+  container-title: Research Beyond the Lab
+#  url: https://www.example.com # insert website link here
+# bibliography: references.bib
+# csl: apa.csl  # other csls https://github.com/citation-style-language/styles
+format:
+#  docx: default
+  html:
+    toc: true
+    toc-depth: 4
+    toc-expand: true
+    embed-resources: true
+#    fig-width: 6  
+#    fig-asp: 0.618    # the golden ratio, only adjust fig-asp in chunks where needed
+#    fig-align: center
+#    out-width: "70%"
+
+# global code chunk options are defined:
+execute:
+  warning: true
+  cache: false   # regularily clear out by knitr::clean_cache()
+
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+```
+
+[Code chunk options](https://r4ds.hadley.nz/quarto#chunk-options): ([full list](https://yihui.org/knitr/options/))
+
+``` r
+#| label:           (name chunk)
+#| eval: false      (code not evaluated, no results)
+#| include: false   (runs code, does not show code or results in doc)
+#| echo: false      (results shown, code not)
+#| message: false   (prevents message appearance)
+#| warning: false   (prevents warning appearance)
+#| results: hide    (hide printed output)
+#| fig-show: hide   (hide plots)
+#| error: true      (render continues despite error)
+#| code-fold: true  (collapse the code chunk)
+```
+
+[Troubleshooting in quarto](https://r4ds.hadley.nz/quarto#troubleshooting)
+
+## Setup & Import
+
+```{r}
+#| label: load-packages
+#| warning: false
+
+library(tidyverse)
+# library(ggplot2) in tidyverse
+# library(dplyr) in tidyverse
+# library(stringr) in tidyverse
+# library(readr) in tidyverse
+library(ggthemes)
+library(ggridges)
+library(readxl)
+library(googlesheets4)
+library(sf) #standardized way to encode spatial vector data
+library(gt) #Presentation-Ready Display Tables
+library(gtsummary) #publication-ready analytical and summary tables using the R programming language
+library(knitr) #general-purpose tool for dynamic report generation in R using Literate Programming techniques.
+library(DT) #Data objects in R can be rendered as HTML tables using the JavaScript library 'DataTables'
+library(lubridate) #tools to make dates parsing and manipulation easier
+
+# datasets: ------------------------------------
+library(gapminder)
+library(palmerpenguins)
+library(rnaturalearth)
+library(nycflights13)
+```
+
+## [Read data](https://r4ds.hadley.nz/data-import)
+
+### Read CSV
+
+```{r}
+#| label: read-csv-data
+
+sanitation <- read_csv(here::here("data/jmp_wld_sanitation_long.csv"))
+
+students <- read_csv("https://pos.it/r4ds-students-csv", na = c("N/A", "")) # import directly from URL, define what is NA
+
+read_csv(                               # skip metadata at beginning of csv file
+  "The first line of metadata
+  The second line of metadata
+  1,2,3
+  4,5,6",
+  col_names = c("x", "y", "z"),
+  skip = 2
+)
+
+read_csv("
+  x
+  10
+  .
+  20
+  30",
+  col_types = list(x = col_double())    # https://r4ds.hadley.nz/data-import#column-types
+) |> 
+  problems()  # --> read_csv(<...>, na = ".")
+
+```
+
+### Read RDS
+
+```{r}
+#| label: read-rds-data
+
+waste_gt <- read_rds(here::here("data/processed/waste-city-level-sml.rds"))
+survey <- read_rds(here::here("data/processed/waste-survey-processed_rds")) # here:here --> https://rbtl-fs24.github.io/website/assignments/md-05/am-05-1-survey-data.html
+waste_data_long_mean <- read_rds(here::here("data/msw-generation-and-composition-by-income-long-mean.rds"))
+```
+
+### Read spreadsheets
+
+```{r}
+#| label: read-spreadsheet-data
+
+#read google sheet
+waste_data <- read_sheet("https://docs.google.com/spreadsheets/d/12YhM_aLZkg2q383SP8PwfyRpPWA5X2Q2VkhzYYyF1dQ/edit#gid=0")
+
+#read excel file
+sludge <- read_xlsx(here::here("data/raw/faecal-sludge-analysis.xlsx"))    # read_xls / read excel() (guesses if xls or xlsx)
+```
+
+## Explore
+
+```{r}
+#| label: data-explore-functions
+
+head(gapminder)
+tail(gapminder)
+glimpse(gapminder)
+str(gapminder)
+nrow(gapminder)
+ncol(gapminder)
+distinct(gapminder, country)   # keep unique rows
+```
+
+## Data transformation with dplyr
+
+The `dplyr` R Package aims to provide a function for each basic verb of data manipulation. These verbs can be organised into three categories based on the component of the dataset that they work with:
+
+-   Rows
+-   Columns
+-   Groups of rows
+
+( `across()`: Apply a function (or functions) across multiple columns: <https://dplyr.tidyverse.org/reference/across.html>)
+
+### Rows
+
+#### filter()
+
+The function `filter()` chooses rows based on column values. To use filtering effectively, you have to know how to select the observations that you want using the comparison operators. R provides the standard suite: \>, \>=, \<, \<=, != (not equal), and == (equal).
+
+```{r}
+#| label: filter-func
+
+sanitation |> 
+  filter(residence == "national")
+
+sanitation |> 
+  filter(residence != "national")
+
+sanitation |> 
+  filter(name == "Nigeria", (residence == "rural" | residence == "urban"))
+
+sanitation |> 
+  filter(iso3 == "UGA" | iso3 == "PER" | iso3 == "CHE")
+
+sanitation |> 
+  filter(iso3 %in% c("UGA", "PER", "CHE"))
+
+sanitation |> 
+  filter(percent > 80)
+
+sanitation |> 
+  filter(percent <= 5)
+
+sanitation |> 
+  filter(!is.na(percent))
+```
+
+#### arrange()
+
+The function `arrange()` changes the order of the rows.
+
+```{r}
+#| label: arrange-func
+
+sanitation |> 
+  arrange(desc(percent))
+```
+
+#### distinct()
+
+Keep only unique/distinct rows from a data frame.
+
+### Columns
+
+#### select()
+
+The `select()` function chooses columns based on their names.
+
+```{r}
+#| label: select-func
+
+sanitation |> 
+  select(name, percent)
+
+sanitation |> 
+  select(-varname_short)    #delete/remove a column
+
+sanitation |> 
+  select(name:region_sdg, percent)
+```
+
+#### rename()
+
+The `rename()` function changes the names of variables.
+
+```{r}
+#| label: rename-func
+
+sanitation |> 
+  rename(country = name) # use `name of ...` if the name includes special characters/spaces
+```
+
+``` r
+rename(`income category` = income_cat)
+rename_all(~ c(*all the new names*)) # https://www.perplexity.ai/search/How-do-you-RsHoALUfRsWscmTmbzU39A
+students |> janitor::clean_names()   # <-- automated clean names
+```
+
+#### mutate()
+
+The `mutate()` function adds new variables based on existing variables or external data.
+
+```{r}
+#| label: mutate-func
+
+sanitation |> 
+  select(-varname_long) |> 
+  mutate(prop = percent / 100)
+
+sanitation |> 
+  mutate(id = seq(1:n()),
+         .before = name)
+
+waste_data |>
+  mutate(mass_total_kg = NULL) |>  # removes column
+  mutate(bin_id = paste0("B-", bin_id)) # add string to values
+
+students |>
+  mutate(age = parse_number(if_else(AGE == "five", "5", AGE)))
+```
+
+``` r
+argument: mutate(..., .keep = "used") # <-- only used columns are kept
+```
+
+#### relocate()
+
+```{r}
+#| label: relocate-func
+
+sanitation |> 
+  mutate(id = seq(1:n())) |> 
+  relocate(id)
+
+sanitation |> 
+  mutate(id = seq(1:n())) |> 
+  relocate(id, .after = name)
+```
+
+### Groups
+
+#### summarize()
+
+The `summarize()` function reduces multiple values down to a single summary.
+
+```{r}
+#| label: summarize-func
+
+filter(sanitation,
+       residence == "national",
+       year == 2020,
+       varname_short == "san_sm") |> 
+  filter(!is.na(percent)) |> 
+  summarize(mean_percent = mean(percent),   #, na.rm = TRUE),
+            sd_percent = sd(percent),
+            n = n())
+
+waste_tbl_income <- waste_gt |> 
+    filter(!is.na(generation_kg_capita))  |> 
+    group_by(income_cat) |> 
+    summarise(
+        count = n(),
+        mean = mean(generation_kg_capita),
+        sd = sd(generation_kg_capita),
+        median = median(generation_kg_capita),
+        min = min(generation_kg_capita),
+        max = max(generation_kg_capita)
+    )
+print(waste_tbl_income)
+
+penguins |> 
+  #filter(!is.na(bill_depth_mm),!is.na(bill_length_mm)) |> 
+  group_by(species, year) |> 
+  summarize(bill_depth_mean = mean(bill_depth_mm, na.rm = TRUE),
+            bill_length_mean = mean(bill_length_mm, na.rm = TRUE),
+            n = n()) # <-- returns number of rows in each group
+```
+
+#### group_by() \[reverse: ungroup()\]
+
+The `group_by()` function is used to group the data by one or more variables.
+
+```{r}
+#| label: group-func
+
+filter(sanitation,
+       residence == "national",
+       year == 2020,
+       varname_short == "san_sm") |> 
+  group_by(region_sdg) |> 
+  filter(!is.na(percent)) |> 
+  summarize(n = n(),
+            mean_percent = mean(percent),
+            sd_percent = sd(percent))
+```
+
+Alternative: use `.by = c(..., ...)` as argument in other function to group within a single operation
+
+#### slice\_
+
+```{r}
+#| label: slice-func
+
+sludge |> slice_head(n = 1)   # takes the first row from each group.
+sludge |> slice_tail(n = 1)   # takes the last row in each group.
+sludge |> slice_min(ts, n = 1) # takes the row with the smallest value of column ts.
+sludge |> slice_max(ts, n = 1) # takes the row with the largest value of column ts.
+sludge |> slice_sample(n = 1) # takes one random row.
+```
+
+You can vary `n` to select more than one row, or instead of `n =`, you can use `prop = 0.1` to select (e.g.) 10% of the rows in each group.
+
+Note that [`slice_min()`](https://dplyr.tidyverse.org/reference/slice.html) and [`slice_max()`](https://dplyr.tidyverse.org/reference/slice.html) keep tied values so `n = 1` means give us all rows with the highest value. If you want exactly one row per group you can set `with_ties = FALSE`.
+
+#### count()
+
+The `count()` function is a convenient wrapper for `group_by()` and `summarise(n = n())`. You can prepare frequency tables with `count()`.
+
+```{r}
+#| label: count-func
+
+sanitation |> 
+  count(region_sdg)
+
+#same as
+
+sanitation |> 
+  group_by(region_sdg) |> 
+  summarize(s = n())
+
+sanitation |> 
+  count(varname_short, varname_long)
+
+sanitation |> 
+  count(is.na(percent))
+```
+
+When writing the count output to an object –\> use `count(WHATEVER)$n` to only take the numbers
+
+### Pivoting
+
+```{r}
+#| label: pivot-func
+
+survey_long <- survey |> 
+  select(id, sep_paper:sep_electro) |> 
+  pivot_longer(cols = -id,  # all cols but id
+               names_to = "waste_type",
+               values_to = "answer",
+               values_drop_na = TRUE) |> # gets rid of all NAs in the created values column
+  mutate(waste_type = str_remove(waste_type, pattern = "sep_"))
+print(survey_long)
+
+survey_counted <- survey_long |> 
+  count(waste_type, answer, sort = TRUE)
+print(survey_counted)
+
+survey_counted|> 
+  pivot_wider(
+#     id_cols = starts_with("<chr>"), # values that uniquely identify each row (if more than one id col) - https://r4ds.hadley.nz/data-tidy
+      names_from = answer,
+      values_from = n)
+```
+
+If the column names (wide format) contain multiple pieces of info (e.g., `sp_m_014`) create multiple columns with `names_sep`.
+
+Example:
+
+``` r
+who2 |> 
+  pivot_longer(
+    cols = !(country:year),
+    names_to = c("diagnosis", "gender", "age"), 
+    names_sep = "_",
+    values_to = "count"
+  )
+```
+
+## Data types & (atomic) vectors
+
+Atomic vectors (six types): logical, integer, double, character, complex, and raw.
+
+Integer and double vectors are collectively known as numeric vectors.
+
+-   lgl: logical (only TRUE FALSE or NA as values)
+-   int: integer
+-   dbl: double
+-   chr: character
+
+```{r}
+#| label: data-types
+
+vector_lgl <- c(TRUE, FALSE, NA)
+typeof(vector_lgl)
+sum(vector_lgl, na.rm = TRUE)
+as.numeric(vector_lgl)  # convert to dbl
+
+typeof(c(1, 3, 6)) #double as default (takes up less space than integer)
+seq(1,6,2)         #type: integer
+vector_int <- c(1L, 3L, 6L)
+typeof(vector_int)
+
+vector_dbl <- c(1293, 5.15, 90.500)
+typeof(vector_dbl)
+
+vector_chr <- c("large", "small", "medium")
+typeof(vector_chr)
+```
+
+##### Logical vectors
+
+```{r}
+#| label: log-vec
+
+vector_dbl > 150
+
+"large" == vector_chr
+
+str_detect(vector_chr, "lar")
+
+c(1L, 0L, 1L) == vector_lgl
+
+
+norm_dist <- rnorm(200, 50, 5)
+
+mean(norm_dist)
+norm_dist >= 50
+sum(norm_dist >= 50)
+mean(norm_dist >= 50)
+```
+
+##### Numeric sequences
+
+```{r}
+#| label: num-vec
+
+seq(1, 100, 1)
+seq(1, 100, 50)
+sample(1:100, 100, replace = FALSE)   # integer sampling
+
+# along character vector:
+seq_along(letters) # type == integer
+
+month.name
+seq_along(month.name)
+
+# random number dist:
+runif(n = 1000, min = 1, max = 100) |> hist()   # uniform distr sampling (continuous)
+
+rnorm(n = 1000, mean = 500, sd = 150) |> hist()   # normal distr sampling
+```
+
+##### Explicit vector coercion & augmented vectors
+
+Vectors can also contain arbitrary additional metadata in the form of attributes. These attributes are used to create augmented vectors which build on additional behavior. For example, factors are built on top of integer vectors.
+
+```{r}
+#| label: fct-vec
+
+vector_fct <- factor(vector_chr, levels = c("small", "medium", "large"))
+
+typeof(vector_fct) # factor turns chr into integer vector
+attributes(vector_fct)
+as.integer(vector_fct)
+```
+
+### Create tibble / dataframe
+
+```{r}
+#| label: create-tibble
+
+data_dictionary <- tibble(name = c("bin_id", "collection_date",
+                                   "weekday", "location", "mass_VAR_kg"),
+                          description = c("unique identifier of waste bin",
+                                          "calendar date of waste collection",
+                                          "corresponding weekday of collection",
+                                          "location of waste bin in Zurich",
+                                          "measured mass of waste of type VAR in kg (types: paper, plastic, glass, metal, organic,other)"))
+
+tib_data <- tibble(
+  vector_lgl,
+  vector_int,
+  vector_dbl,
+  vector_chr,
+  vector_fct,
+  date = Sys.Date()  # adjusts length to other columns (has to be repeatable)
+)
+print(tib_data)
+
+tribble <- tribble(   # Create (small) tibbles using a row-by-row layout
+  ~id,  ~bp1, ~bp2,
+   "A",  100,  120,
+   "B",  140,  115,
+   "C",  120,  125
+)
+print(tribble)
+```
+
+Accessing a vector from a dataframe:
+
+```{r}
+#| label: select-column
+
+tib_data |> 
+  pull(vector_fct)   # selects actual vector
+
+tib_data$vector_fct  # selects actual vector
+
+tib_data[5]          # using numeric index, returns actual column; access col 5
+
+tib_data[[5]]        # selects actual vector; access values in col 5
+```
+
+### Joining data frames
+
+`<something>_join(x, y)`
+
+-   `left_join()`: all rows from x
+
+-   `right_join()`: all rows from y
+
+-   `full_join()`: all rows from both x and y
+
+```{r}
+#| label: join-tibbles
+
+x <- tribble(
+  ~id, ~value_x,
+  1,   "x1",
+  2,   "x2",
+  3,   "x3"
+)
+
+y <- tribble(
+  ~id, ~value_y,
+  1,   "y1",
+  2,   "y2",
+  4,   "y4"
+)
+
+left_join(x, y)
+right_join(y, x)
+right_join(x, y)
+full_join(x, y)
+full_join(y, x)
+```
+
+## Conditions
+
+```{r}
+#| label: if-else
+
+waste_data |>
+  mutate(collection_date  =  if_else(collection_date == "Sunday, 31st March 2024",
+                                     "2024-03-31",
+                                     "2024-04-04"))
+```
+
+```{r}
+#| label: case-when
+#| results: hide
+
+waste_gt |> 
+    mutate(income_cat = case_when(
+        income_id == "HIC" ~ "high income",
+        income_id == "UMC" ~ "upper-middle income",
+        income_id == "LMC" ~ "lower-middle income",
+        .default = income_id          #old way of writing: TRUE ~ col_name
+    ))
+
+sludge |> 
+    mutate(system = case_when(id == 6 ~ "septic tank",
+                              .default = system))
+```
+
+## Programming with R
+
+##### For loops
+
+```{r}
+#| label: for-loop
+
+size <- tib_data$vector_fct
+
+for (s in size) {
+  msg <- paste(
+    "------", s, "------"
+  )
+  print(msg) 
+}
+```
+
+##### If statements
+
+```{r}
+#| label: if-cond
+
+pet <- c("bat", "cat", "dog", "bird", "horse")
+
+for(p in pet) {
+  if(p == "dog") {
+    msg <- paste("A", p, "is the best!")
+  } else {
+    msg <- paste("A", p, "is okay I guess.")
+  }
+  print(msg) 
+}
+
+
+sounds <- c(NA, "meow", "woof", "chirp", "neigh")
+
+message <- list() #list is more versatile, can use index; alt: vector(length = 5)
+
+for (i in seq_along(pet)) {
+  if (pet[i] == "dog") {
+    message[i] <- paste("The", pet[i], "goes", sounds[i])
+  } else {
+    message[i] <- paste("The", pet[i], "says", sounds[i])
+  }
+}
+print(message)
+```
+
+## Other functions
+
+### Factors
+
+```{r}
+#| label: factors
+
+sanitation |> 
+  mutate(varname_short = factor(varname_short, levels = c("san_sm","san_bas",
+                                                          "san_lim", "san_unimp",
+                                                          "san_od"))) |> 
+  count(varname_short, varname_long)
+```
+
+Any values not in the level will be silently converted to NA. Might want to use [`forcats::fct()`](https://forcats.tidyverse.org/reference/fct.html) instead.
+
+Access the set of valid levels directly with [`levels()`](https://rdrr.io/r/base/levels.html). You can also create a factor when reading your data with readr with [`col_factor()`](https://readr.tidyverse.org/reference/parse_factor.html):\
+`read_csv(csv, col_types = cols(month = col_factor(month_levels)))`
+
+[`fct_reorder()`](https://forcats.tidyverse.org/reference/fct_reorder.html) takes three arguments:
+
+-   `.f`, the factor whose levels you want to modify.
+
+-   `.x`, a numeric vector that you want to use to reorder the levels.
+
+-   Optionally, `.fun`, a function that’s used if there are multiple values of `.x` for each value of `.f`. The default value is `median`.
+
+[`fct_relevel()`](https://forcats.tidyverse.org/reference/fct_relevel.html) takes a factor, `.f`, and then any number of levels that you want to move to the front of the line.
+
+Further functions: <https://r4ds.hadley.nz/factors>
+
+`fct_reorder2(.f, .x, .y)`, [`fct_infreq()`](https://forcats.tidyverse.org/reference/fct_inorder.html) (+[`fct_rev()`](https://forcats.tidyverse.org/reference/fct_rev.html)), [`fct_recode()`](https://forcats.tidyverse.org/reference/fct_recode.html),`fct_lump_*()`, [`ordered()`](https://rdrr.io/r/base/factor.html)
+
+### Dates
+
+In R and other programming languages, dates are stored as numbers. The number of days since 1970-01-01 is the ISO 8601 standard.
+
+In Excel, dates are stored as numbers of days since 1900-01-01. In Excel, the date number 1 corresponds to "1900-01-01," but this system incorrectly considers 1900 as a leap year, which it is not. As a result, to correctly interpret date numbers that originate from systems like Excel, the origin "1899-12-30" is used to account for this discrepancy
+
+```{r}
+#| label: date-types
+
+dates <- read_excel(here::here("data/raw/date-formats.xlsx"))
+
+head(dates)
+dates_class <- dates |> 
+    mutate(date_iso = as_date(date_iso)) |> 
+    mutate(date_us = mdy(date_us)) |> #mdy: month, day, year
+    mutate(date_eu = dmy(date_eu)) |> 
+    mutate(date_num = as_date(date_num, origin = "1899-12-30")) |> 
+    mutate(date = as_date(date_time)) |> 
+    mutate(date_time_tz = with_tz(date_time, tzone = "Africa/Kampala")) |> #forece_tz  to apply local time zone
+    mutate(today = today())
+
+print(dates_class)
+```
+
+```{r}
+#| label: specific-dates
+
+as.numeric(today())
+as_date(1)
+```
+
+```{r}
+#| label: extract-date
+
+dates_class |> 
+    select(today) |> 
+    mutate(year = year(today)) |>
+    #mutate(month = month(today, label = TRUE, abbr = FALSE, locale = "fr_FR")) |> 
+    mutate(quarter = quarter(today)) |>
+    mutate(week = week(today)) |>
+    mutate(day = day(today)) |>
+    #mutate(day_of_week = wday(today, label = TRUE, abbr = FALSE, locale = "fr_FR")) |>
+    mutate(day_of_year = yday(today)) |>
+    mutate(week_of_year = week(today)) 
+```
+
+`OlsonNames()`: List of tz database time zones
+
+### Others
+
+Integer division `%/%`, modulo `%%`
+
+```{r}
+#| label: other-helpful-stuff
+
+# objects
+letters
+LETTERS
+```
+
+#### Selection / Detection
+
+```{r}
+#| label: select-detect
+
+# str_detect()
+survey |>
+ mutate(gender_new = case_when(
+ gender == "Male" ~ "M",
+ str_detect(gender, pattern = "ema") == TRUE ~ "F",
+ str_detect(gender, pattern = "bin") == TRUE ~ NA_character_,
+ TRUE ~ gender
+ ), .before = gender)
+```
+
+`select()` and others <https://dplyr.tidyverse.org/reference/select.html>\
+`starts_with("<e.g. a string>")` <https://tidyselect.r-lib.org/reference/starts_with.html>\
+`str_detect()` [Difference btw. str_detect and contains](https://www.perplexity.ai/search/In-R-what-ufgJsafzSMGNnfe721WmzQ)
+
+## Visualization - Graphs
+
+Save figures to files in code: `ggsave()` –\> when searching for figure, the code is also returned!
+
+### Aesthetic mappings
+
+```{r}
+#| label: aes-mapping
+
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm,
+                     y = body_mass_g,
+                     color = species,
+                     shape = species)) +
+  geom_point() # na.rm = TRUE can be included in the geom settings
+```
+
+### Settings
+
+```{r}
+#| label: geom-settings
+
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm,
+                     y = body_mass_g,
+                     color = species,
+                     shape = species)) +
+  geom_point(size = 5, alpha = 0.7)
+```
+
+### Color scales
+
+```{r}
+#| label: colorscale-cblind
+
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm,
+                     y = body_mass_g,
+                     color = species,
+                     shape = species)) +
+  geom_point(size = 5, alpha = 0.7) +
+  scale_color_colorblind()
+```
+
+```{r}
+#| label: set-colorscale
+
+# similar for other mappings; e.g., scale_fill_manual(values = c("red", "orange", "grey")
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm,
+                     y = body_mass_g,
+                     color = species,
+                     shape = species)) +
+  geom_point(size = 5, alpha = 0.7) +
+  scale_color_manual(values = c("red", "blue", "green"))
+```
+
+### Facets
+
+```{r}
+#| label: facet-grid
+
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm,
+                     y = body_mass_g)) +
+  geom_point() +
+  facet_grid(island ~ species)
+```
+
+```{r}
+#| label: facet-wrap
+
+ggplot(data = filter(gapminder, year == 2007),
+       mapping = aes(x = gdpPercap,
+                     y = lifeExp,
+                     size = pop,
+                     color = country)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~continent)
+```
+
+### Themes
+
+```{r}
+#| label: visual-themes
+
+ggplot(data = penguins,
+       mapping = aes(x = flipper_length_mm, 
+                     y = body_mass_g, 
+                     color = species,
+                     shape = species)) +
+  geom_point(size = 5, alpha = 0.7) +
+  scale_color_colorblind() +
+  theme_minimal()
+```
+
+### Visualization Distribution
+
+[Visualizing covariation](https://r4ds.hadley.nz/eda#covariation) of
+
+-   categorical & numerical variables: `geom_freqpoly()` or `geom_boxplot()`
+
+-   two categorical variables: `geom_tiles()` or `geom_count()`
+
+-   two numerical variables: `geom_point()` with transparency `alpha = 1/...` for large datasets; for very large datasets use `geom_bin2d()` or `geom_hex()` ; or bin one continuous variable s.t. it acts as categorical
+
+#### Categorical variables
+
+```{r}
+#| label: cat-var1
+
+ggplot(data = penguins,
+       mapping = aes(x = species)) +
+  geom_bar()
+```
+
+```{r}
+#| label: cat-var2
+
+ggplot(data = penguins,
+       mapping = aes(x = species,
+                     fill = island)) +
+  geom_bar() +
+  scale_fill_manual(values = c("red", "orange", "grey"))
+```
+
+```{r}
+#| label: cat-var3
+
+ggplot(data = summarize(group_by(filter(gapminder, year == 2007), continent),
+                        count = n(),
+                        lifeExp = median(lifeExp)),
+       mapping = aes(x = continent,
+                     y = count)) +
+  geom_col()
+```
+
+Visualizing covariation of two categorical variables
+
+```{r}
+#| label: covariation-cat-var
+
+diamonds |> 
+  count(color, cut) |>  
+  ggplot(aes(x = color, y = cut)) +
+  geom_tile(aes(fill = n))
+```
+
+#### Numerical variables
+
+```{r}
+#| label: num-var1
+
+ggplot(data = filter(gapminder, year == 2007),
+       mapping = aes(x = lifeExp,
+                     fill = continent)) +
+  geom_histogram(col = "grey60", breaks = seq(35, 90, 1))
+```
+
+```{r}
+#| label: num-var2
+
+ggplot(data = penguins,
+       mapping = aes(x = body_mass_g,
+                     fill = species)) +
+  geom_histogram() +
+  scale_fill_brewer(type = "qual")
+```
+
+```{r}
+#| label: num-var3
+
+ggplot(data = penguins,
+       mapping = aes(x = body_mass_g,
+                     fill = species)) +
+  geom_density()
+```
+
+```{r}
+#| label: num-var4
+
+ggplot(data = penguins,
+       mapping = aes(x = body_mass_g,
+                     y = species,
+                     fill = species)) +
+  geom_density_ridges() +
+  scale_fill_colorblind()
+```
+
+```{r}
+#| label: num-var5
+
+ggplot(data = filter(gapminder, year == 2007),
+       mapping = aes(x = continent,
+                     y = lifeExp,
+                     fill = continent)) +
+  geom_boxplot(outlier.shape = NA)
+```
+
+```{r}
+#| label: num-var6
+
+ggplot(data = summarize(group_by(gapminder, continent, year),
+                        lifeExp = median(lifeExp)),
+       mapping = aes(x = year,
+                     y = lifeExp,
+                     color = continent)) +
+  geom_line() +
+  geom_point()
+```
+
+```{r}
+#| label: covariation-num-var
+
+ggplot(filter(diamonds, carat < 3), aes(x = carat, y = price)) +
+  geom_bin2d()
+
+# install.packages("hexbin")
+ggplot(filter(diamonds, carat < 3), aes(x = carat, y = price)) +
+  geom_hex()
+```
+
+```{r}
+#| label: covariation-num-var2
+
+ggplot(filter(diamonds, carat < 3), aes(x = carat, y = price)) + 
+  geom_boxplot(aes(group = cut_width(carat, 0.2)),
+               varwidth = TRUE) # visualize nr of observations
+```
+
+### Examples
+
+```{r}
+#| label: example-visualize1
+#| fig-width: 5
+#| fig-asp: 0.618
+
+ggplot(data = filter(gapminder,
+                     year == 2007), 
+       mapping = aes(x = continent, 
+                     y = lifeExp)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 1/4, size = 3) +
+  labs(x = NULL,
+       y = "Life Expectancy (years)") +
+  theme_minimal() # + geom_smooth(method = "METHOD")
+```
+
+```{r}
+#| label: example-visualize2
+
+world <- ne_countries(scale = "small", returnclass = "sf")
+
+world |> 
+  mutate(income_grp = factor(income_grp, ordered = T)) |> 
+  ggplot(aes(fill = income_grp)) + 
+  geom_sf() +
+  theme_void() +
+  theme(legend.position = "top") +
+  labs(fill = "Income Group:") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+```{r}
+#| label: example-visualize3
+
+ggplot(filter(sanitation,
+              name == "Nigeria", (residence == "rural" | residence == "urban")),
+       aes(year,
+           percent,
+           group = varname_short,
+           color = varname_short)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~residence) +
+  scale_color_colorblind()
+```
+
+```{r}
+#| label: example-visualize4
+
+ggplot(filter(sanitation,
+              name == "Hungary",
+              year  %in% c(2000, 2020),
+              varname_short != "san_sm"),
+       aes(residence, percent, fill = varname_long)) +
+  geom_col()+
+  scale_fill_colorblind() +
+  facet_wrap(~year) +
+  geom_text(aes(label = round(percent, 1)), 
+          position = position_stack(vjust = 0.5),
+          size = 3,
+          color = "white")
+```
+
+```{r}
+#| label: example-visualize5
+
+ggplot(data = filter(sanitation, year == 2020),
+       mapping = aes(x = percent, fill = varname_short)) +
+  geom_histogram() +
+  facet_grid(varname_short ~ residence, scales = "free_y") +
+  scale_fill_colorblind() +
+  theme(legend.position = "none")
+```
+
+```{r}
+#| label: example-visualize6
+
+ggplot(data = waste_data_long_mean, 
+       mapping = aes(x = mean_percent, 
+                     y = waste_category, 
+                     fill = income_cat)) + 
+  geom_col(position = position_dodge()) + 
+  labs(title = "Waste Composition", 
+       subtitle = "Mean percentages of nine waste categories displayed by income categories",
+       x = "mean (percent)", 
+       y = "waste category", 
+       fill = "Income category", 
+       caption = "Data from: https://datacatalog.worldbank.org/search/dataset/0039597") + 
+  scale_x_continuous(breaks = seq(0, 50, 5)) + 
+  scale_fill_brewer(type = "qual", palette = 3) +
+  theme_minimal() + 
+  theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_blank())
+```
+
+```{r}
+#| label: example-visualize7
+
+sanitation |> 
+  filter(iso3 %in% c("AFG", "AGO"),
+         varname_short == "san_bas",
+         year %in% c(2000, 2001, 2002),
+         residence == "national") |> 
+  ggplot(aes(x = year, y = percent)) +
+    geom_line(aes(group = name), color = "grey50") +
+    geom_point(aes(color = name, shape = name)) +
+    scale_x_continuous(breaks = c(2000, 2002)) # x-axis breaks at 1999 and 2000
+```
+
+## Tables
+
+```{r}
+#| label: plain-tbl
+
+waste_tbl_income
+```
+
+```{r}
+#| label: gt-tbl1
+
+waste_tbl_income |> 
+    gt() |> 
+    tab_header(title = "Waste generation per capita (kg/year) by income group",
+               subtitle = "Data from 326 cities") |>
+    fmt_number(columns = count:max, decimals = 0) |>  #format numeric values
+    cols_label(income_cat = "income category")
+```
+
+```{r}
+#| label: gt-tbl2
+
+penguins |> 
+  filter(!is.na(bill_depth_mm)) |> 
+  group_by(island, species) |>
+  summarise(n = n(),
+            mean_bill_depth = mean(bill_depth_mm),
+            sd_bill_depth = sd(bill_depth_mm)) |>
+  ungroup() |> 
+  gt() |> 
+  fmt_number(columns = c(mean_bill_depth, sd_bill_depth),
+             decimals = 1)
+```
+
+### Cross reference in text
+
+-   Give an ID (label) to your figure or table, starting with fig- or tbl-.
+
+-   Add a caption to your figure or table.
+
+-   Refer to it with \@fig-... or \@tbl-....
+
+@tbl-waste-income `@tbl-waste-income` highlights ... (identical for `@fig-...`)
+
+``` r
+chunk options:
+#| label: tbl-waste-income
+#| tbl-cap: "Waste generation per capita (kg/year) by income group. Data from 326 cities."
+```
+
+```{r}
+#| label: tbl-waste-income
+#| tbl-cap: "Waste generation per capita (kg/year) by income group. Data from 326 cities."
+
+waste_tbl_income |> 
+  kable(col.names = c("Income Category", "Count", "Mean", "Standard deviation",
+                        "Median", "Min", "Max"),
+        align = 'lcccrrr',
+        digits = 1)
+```
+
+## Write data
+
+```{r}
+#| label: write-data
+
+#write csv
+write_csv(data_dictionary, here::here("data/processed/data_dictionary.csv"))
+
+#write rds
+write_rds(x = waste_gt, file = here::here("data/processed/waste-city-level-sml-write.rds"))
+```
+
+*Alternative to rds*: parquet files from arrow package (much faster and usable outside of R).
+
+## Markdown Docs
+
+Enter **/** to invoke shortcut options
+
+Examples for [source editor code](https://r4ds.hadley.nz/quarto#sec-source-editor)
+
+Reference sheet: *Help \> Markdown Quick References*
+
+LaTeX equations: ( \$\$ before and after equation)
+
+$$
+x = \frac{a\pm s_{safety}}{\sqrt{bms}}
+$$
+
+## Citations
+
+In @tilley2021my `@tilley2021my`, the authors describe how visitors still expect a personal pick-up, despite the availability of taxi services.
+
+Inequality underpins waste management systems, structuring who can or cannot access services [@kalina2023rich] `[@kalina2023rich]`.
+
+## Git config
+
+``` r
+library(usethis)
+use_git_config(user.name = "<your git username>", user.email = "<your email used for git>")
+```
+
+## References

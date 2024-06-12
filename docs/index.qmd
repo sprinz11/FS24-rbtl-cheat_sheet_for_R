@@ -31,7 +31,7 @@ format:
 
 # global code chunk options are defined:
 execute:
-  warning: true
+  warning: false
   cache: false   # regularily clear out by knitr::clean_cache()
 
 editor: visual
@@ -104,6 +104,28 @@ editor_options:
 ```
 
 [Troubleshooting in quarto](https://r4ds.hadley.nz/quarto#troubleshooting)
+
+### Shortcuts
+
+List of shortcut: **Alt + Shift + K**
+
+##### Quarto Shortcuts
+
+-   Pipe operator: **Ctrl + Shift + M**
+
+-   Assignment operator: **Alt + -**
+
+-   Run code chunk: **Ctrl + Shift + Enter**
+
+##### Script Shortcuts
+
+-   Sectioning comment headers: **Ctrl + Shift + R**
+
+-   Run all chunks: **Ctrl + Alt + R**
+
+-   Execute complete script: **Ctrl + Shift + S**
+
+-   Restart R: **Ctrl + Shift + 0/F10**
 
 ## Setup & Import
 
@@ -216,7 +238,8 @@ The `dplyr` R Package aims to provide a function for each basic verb of data man
 
 #### filter()
 
-The function `filter()` chooses rows based on column values. To use filtering effectively, you have to know how to select the observations that you want using the comparison operators. R provides the standard suite: \>, \>=, \<, \<=, != (not equal), and == (equal).
+The function `filter()` chooses rows based on column values. To use filtering effectively, you have to know how to select the observations that you want using the comparison operators. R provides the standard suite: `>`, `>=`, `<`, `<=`, `!=` (not equal), and `==` (equal).\
+Use `&` and `|` to filter for multiple values.
 
 ```{r}
 #| label: filter-func
@@ -460,7 +483,9 @@ survey_counted|>
   pivot_wider(
 #     id_cols = starts_with("<chr>"), # values that uniquely identify each row (if more than one id col) - https://r4ds.hadley.nz/data-tidy
       names_from = answer,
-      values_from = n)
+      values_from = n
+#     values_fill = 0         # <-- what should be filled in for missing value
+      )
 ```
 
 If the column names (wide format) contain multiple pieces of info (e.g., `sp_m_014`) create multiple columns with `names_sep`.
@@ -672,6 +697,13 @@ waste_gt |>
 sludge |> 
     mutate(system = case_when(id == 6 ~ "septic tank",
                               .default = system))
+
+survey |> 
+  mutate(across(starts_with("sep_"), ~ case_when(
+    . == "Separated" ~ "s",          # dot is a placeholder for all selected cols
+    . == "Not separated" ~ "ns",
+    . == "No answer" ~ "noa"
+  )))            # https://www.perplexity.ai/search/In-an-R-zSpzF9tWTUOpT8NO0PdLAA
 ```
 
 ## Programming with R
@@ -736,10 +768,21 @@ sanitation |>
   count(varname_short, varname_long)
 ```
 
-Any values not in the level will be silently converted to NA. Might want to use [`forcats::fct()`](https://forcats.tidyverse.org/reference/fct.html) instead.
+Any values not in the level will be silently converted to NA. (Might want to use [`forcats::fct()`](https://forcats.tidyverse.org/reference/fct.html) instead.)
 
 Access the set of valid levels directly with [`levels()`](https://rdrr.io/r/base/levels.html). You can also create a factor when reading your data with readr with [`col_factor()`](https://readr.tidyverse.org/reference/parse_factor.html):\
 `read_csv(csv, col_types = cols(month = col_factor(month_levels)))`
+
+To reverse the order of the fct, s.t. the "first" item is on top of the y-axis on a figure use `fct_rev()` (<https://www.perplexity.ai/search/When-using-ggplot-.9PkPLwERA2BJyVcRre66g>)
+
+``` r
+fig_avail_response |> 
+  ggplot(aes(x = avail_resp_short, y = fct_rev(waste_type))) + 
+  geom_tile(aes(fill = n)) +
+  labs(x = "Availability",
+       y = "Waste type",
+       fill = "# students")
+```
 
 [`fct_reorder()`](https://forcats.tidyverse.org/reference/fct_reorder.html) takes three arguments:
 
@@ -817,6 +860,10 @@ LETTERS
 
 #### Selection / Detection
 
+`select()` and others <https://dplyr.tidyverse.org/reference/select.html>\
+`starts_with("<e.g. a string>")` <https://tidyselect.r-lib.org/reference/starts_with.html>\
+`str_detect()` [Difference btw. str_detect and contains](https://www.perplexity.ai/search/In-R-what-ufgJsafzSMGNnfe721WmzQ)
+
 ```{r}
 #| label: select-detect
 
@@ -828,11 +875,12 @@ survey |>
  str_detect(gender, pattern = "bin") == TRUE ~ NA_character_,
  TRUE ~ gender
  ), .before = gender)
-```
 
-`select()` and others <https://dplyr.tidyverse.org/reference/select.html>\
-`starts_with("<e.g. a string>")` <https://tidyselect.r-lib.org/reference/starts_with.html>\
-`str_detect()` [Difference btw. str_detect and contains](https://www.perplexity.ai/search/In-R-what-ufgJsafzSMGNnfe721WmzQ)
+# long names can be saved to a variable
+long_col_name <- "field_of_study"
+
+count(survey, !!sym(long_col_name)) # !!sym() converts the variable long_col_name into symbol usable in str_detect() function https://www.perplexity.ai/search/Using-the-filter-EamBK_pYRmucZrXnpBhYDQ
+```
 
 ## Visualization - Graphs
 
@@ -1191,7 +1239,8 @@ waste_tbl_income |>
     tab_header(title = "Waste generation per capita (kg/year) by income group",
                subtitle = "Data from 326 cities") |>
     fmt_number(columns = count:max, decimals = 0) |>  #format numeric values
-    cols_label(income_cat = "income category")
+    cols_label(income_cat = "income category") |> 
+    opt_stylize(style = 1)
 ```
 
 ```{r}

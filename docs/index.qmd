@@ -127,7 +127,7 @@ List of shortcut: **Alt + Shift + K**
 
 -   Restart R: **Ctrl + Shift + 0/F10**
 
-## Setup & Import
+## Setup (load packages)
 
 ```{r}
 #| label: load-packages
@@ -160,12 +160,17 @@ library(nycflights13)
 
 ### Read CSV
 
+When reading data, the data type can be controlled by specifying `col_types = "<types for each col>"`
+
 ```{r}
 #| label: read-csv-data
 
 sanitation <- read_csv(here::here("data/jmp_wld_sanitation_long.csv"))
 
-students <- read_csv("https://pos.it/r4ds-students-csv", na = c("N/A", "")) # import directly from URL, define what is NA
+students <- read_csv("https://pos.it/r4ds-students-csv",  # import directly from URL
+                     na = c("N/A", ""),   # define what counts as NA
+                     col_types = "ncccc"  # specify the data type for each column
+                     )
 
 read_csv(                               # skip metadata at beginning of csv file
   "The first line of metadata
